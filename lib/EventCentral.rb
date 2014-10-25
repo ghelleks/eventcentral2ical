@@ -76,6 +76,8 @@ module EventCentral
 
       @calendar = RiCal.Calendar
 
+      # this is a good place to introduce X-WR-CALNAME
+
       @csv_data.each do |row|
         @@logger.debug { "row: " + row.values.to_s }
 
@@ -100,11 +102,11 @@ module EventCentral
         e.summary   = row[:event_name]
         remaining_keys -= [ :event_name ]
 
-        e.dtstart   = DateTime.strptime(row[:start_date], '%Y-%m-%d').with_floating_timezone 
+        e.dtstart   = Date.strptime(row[:start_date], '%Y-%m-%d')
         remaining_keys -= [ :start_date ]
 
         unless row[:end_date].nil?
-          e.dtend     = DateTime.strptime(row[:end_date], '%Y-%m-%d').with_floating_timezone 
+          e.dtend     = Date.strptime(row[:end_date], '%Y-%m-%d')
         end
         remaining_keys -= [ :end_date ]
 
