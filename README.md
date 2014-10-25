@@ -12,11 +12,10 @@ Don't forget to fix the URL. You can either edit `config.ru` to change the Event
 
 ## Command-Line
 
-~~~~~
 This will spit out an ICalendar file for you:
 
-    $ ./get-ical.rb
-
+~~~~~
+$ ./get-ical.rb
 ~~~~~
 
 ## OpenShift
