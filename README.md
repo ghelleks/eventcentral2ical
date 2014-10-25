@@ -26,6 +26,12 @@ $ rhc app create ec2ical ruby-1.9 --from-code=https://github.com/ghelleks/eventc
 
 Boom.
 
+## Example
+
+Red Hat's marketing calendar:
+
+    http://eventcentral2ical-ghelleks.itos.redhat.com/
+
 ## Bugs, Patches, Problems
 
 File an issue: http://github.com/ghelleks/eventcentral2ical
