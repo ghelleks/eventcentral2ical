@@ -1,5 +1,5 @@
 require 'rack/lobster'
-require './lib/ec-to-ical.rb'
+require './lib/EventCentral.rb'
 
 map '/health' do
   health = proc do |env|
@@ -13,5 +13,10 @@ map '/lobster' do
 end
 
 map '/' do
-  run do_ical_conversion
+  run EventCentral::App
 end
+
+map '/v1' do
+  run EventCentral::API
+end
+
