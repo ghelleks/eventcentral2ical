@@ -1,10 +1,12 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    rack (1.5.2)
     ri_cal (0.8.8)
 
 PLATFORMS
   ruby
 
 DEPENDENCIES
+  rack
   ri_cal
