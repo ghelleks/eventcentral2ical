@@ -91,17 +91,13 @@ end
 
 # Assumes:
 # "Event Name","Start Date","End Date",Country,State,City,Venue,"Region 1","Region 2","Region 3",Contacts,URL,URL2,URL3, Sponsorship,Stakeholders,Type
+def do_ical_conversion
+  app = Proc.new do |env|
+    csv_text = fetch_csv()
+    map = parse_csv(csv_text)
+    cal = build_cal(map)
 
-app = Proc.new do |env|
-  csv_text = fetch_csv()
-  map = parse_csv(csv_text)
-  cal = build_cal(map)
-
-  ['200', {'Content-Type' => 'text/calendar'}, [cal.export] ]
-
+    ['200', {'Content-Type' => 'text/calendar'}, [cal.export] ]
+  end
 end
-
-Rack::Handler::WEBrick.run app
-
-
 

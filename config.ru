@@ -13,14 +13,5 @@ map '/lobster' do
 end
 
 map '/' do
-
-  csv_text = fetch_csv()
-  map = parse_csv(csv_text)
-  cal = build_cal(map)
-
-  calendar = proc do |env|
-    [200, { "Content-Type" => "text/calendar" }, [ cal.export ] ]
-  end
-  run welcome
-
+  run do_ical_conversion
 end
