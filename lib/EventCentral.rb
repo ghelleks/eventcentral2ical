@@ -4,6 +4,17 @@ require 'open-uri'
 require 'grape'
 require 'logger'
 
+# Until https://github.com/rubyredrick/ri_cal/pull/5 is resolved, we're monkeypatching
+class RiCal::Component::Calendar
+  def export_x_properties_to(export_stream) #:nodoc:
+    x_properties.each do |name, props|
+      props.each do | prop |
+        export_stream.puts("#{name}#{prop}")
+      end
+    end
+  end
+end
+
 module EventCentral
 
   class Calendar
@@ -65,7 +76,7 @@ module EventCentral
       @@logger.debug { "to_json()" }
     end
 
-    def to_ical
+    def to_ical(cal_name="EventCentral")
       @@logger.debug { "to_ical()" }
 
       if @csv_data.nil?
@@ -76,7 +87,8 @@ module EventCentral
 
       @calendar = RiCal.Calendar
 
-      # this is a good place to introduce X-WR-CALNAME
+
+      @calendar.add_x_property 'X-WR-CALNAME', cal_name
 
       @csv_data.each do |row|
         @@logger.debug { "row: " + row.values.to_s }
