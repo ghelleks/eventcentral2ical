@@ -28,9 +28,15 @@ Boom.
 
 ## Example
 
-Red Hat's marketing calendar:
+Subscribe Red Hat's marketing calendar:
 
     http://eventcentral2ical-ghelleks.itos.redhat.com/
+
+API calls you might enjoy:
+
+    http://server/api/v1/version
+    http://server/api/v1/calendar.json
+    http://server/api/v1/calendar.ics
 
 ## Bugs, Patches, Problems
 

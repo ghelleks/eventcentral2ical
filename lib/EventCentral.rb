@@ -3,6 +3,7 @@ require 'csv'
 require 'open-uri'
 require 'grape'
 require 'logger'
+require 'json'
 
 # Until https://github.com/rubyredrick/ri_cal/pull/5 is resolved, we're monkeypatching
 class RiCal::Component::Calendar
@@ -68,25 +69,52 @@ module EventCentral
 
       @csv_data = csv.to_a.map {|row| row.to_hash }
 
-      @@logger.debug { "csv_data: " + csv.to_a.count.to_s }
+      @@logger.debug { "csv_data: " + @csv_data.to_a.count.to_s }
 
     end
 
-    def to_json
-      @@logger.debug { "to_json()" }
+    # removes events from the list, based on the contents of the param argument
+    def filter(params)
+      @@logger.debug { "filter(" + params.inspect + ")" }
+
+      new_csv_data = @csv_data
+
+      unless params[:stakeholder].nil?
+        new_csv_data = @csv_data.reject {|key,value| 
+          key == "stakeholder" && value.match(params[:stakeholder])
+        }
+      end
+
+      @@logger.debug { "new csv_data contains " + new_csv_data.to_a.count.to_s + ")" }
+
+      @csv_data = new_csv_data
     end
 
-    def to_ical(cal_name="EventCentral")
-      @@logger.debug { "to_ical()" }
-
+    def csv_data_check
       if @csv_data.nil?
         @@logger.debug { "CSV was empty, calling loader." }
         self.load
         @@logger.debug { "csv now holds " + @csv_data.to_a.count.to_s + " items" }
       end
+    end
+
+    def to_json
+      @@logger.debug { "to_json()" }
+      self.csv_data_check
+      JSON.dump @csv_data
+    end
+
+    def to_txt
+      @@logger.debug { "to_txt()" }
+      self.csv_data_check
+      @csv_raw
+    end
+
+    def to_ical(cal_name="EventCentral")
+      @@logger.debug { "to_ical()" }
+      self.csv_data_check
 
       @calendar = RiCal.Calendar
-
 
       @calendar.add_x_property 'X-WR-CALNAME', cal_name
 
@@ -160,18 +188,25 @@ module EventCentral
 
     version 'v1', using: :path
     format :json
-    content_type :txt, "text/plain"
-    content_type :ical, "text/calendar"
     default_error_formatter :txt
 
+    content_type :ical, "text/calendar"
     formatter :ical, lambda { |object, env| object.to_ical }
 
-    resource :calendar do
-      desc "Return an EventCentral resource"
-      get '' do
-        ec = new EventCentral::Calendar
-        ec.to_json
+    desc "Returns the version we're working with"
+    get :version do
+      { :version => version }
+    end
+
+    desc "Returns a representation of the EventCentral calendar"
+    get :calendar do
+      params do
+        optional :stakeholder, type: String
+        optional :region, type: String
+        optional :country, type: String
       end
+      ec = EventCentral::Calendar.new
+      #ec.filter(params)
     end
 
   end #API
