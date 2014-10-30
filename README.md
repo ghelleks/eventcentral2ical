@@ -35,31 +35,45 @@ $ rackup
 
 The API is now available at http://localhost:9292/api
 
+## Parameters
+
+* `stakeholder`: filter by contents of the "stakeholders" field
+* `region`: filter by contents of the "region_1" field
+* `country`: filter by contents of the "country" field
+
+See Examples below.
+
 ## Examples
 
 Subscribe Red Hat's marketing calendar:
 
     http://eventcentral2ical-ghelleks.itos.redhat.com/
 
-API calls you might enjoy:
+### API calls you might enjoy
 
-`http://server/api/v1/version`
-: Returns the current version number of the API
+Return the current version number of the API:
 
-http://server/api/v1/calendar.json
-: Returns the full calendar as JSON
+   `http://server/api/v1/version`
 
-http://server/api/v1/calendar.ics
-: Returns the full calendar as ICalendar
+Return the full calendar as JSON:
 
-http://server/api/v1/calendar.ics?stakeholder=Public%20Sector
-: Filters results for events that have "Public Sector" in the "stakeholders" field
+   `http://server/api/v1/calendar.json`
+
+Return the full calendar as ICalendar:
+
+   `http://server/api/v1/calendar.ics`
+
+Filter results for events that have "Public Sector" in the "stakeholders" field
+
+   `http://server/api/v1/calendar.ics?stakeholder=Public%20Sector`
     
-http://server/api/v1/calendar.ics?region=EMEA
-: Filters results for events that have "Public Sector" in the "stakeholders" field
-    
-http://server/api/v1/calendar.ics?country=USA
-: Filters results for events that have "USA" for the "country" field
+Filter results for events that have "Public Sector" in the "stakeholders" field
+
+   `http://server/api/v1/calendar.ics?region=EMEA`
+
+Filter results for events that have "USA" for the "country" field:
+
+   `http://server/api/v1/calendar.ics?country=USA`
 
 ## Bugs, Patches, Problems
 
