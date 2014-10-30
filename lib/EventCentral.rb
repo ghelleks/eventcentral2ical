@@ -1,9 +1,12 @@
+require 'dotenv'
 require 'ri_cal'
 require 'csv'
 require 'open-uri'
 require 'grape'
 require 'logger'
 require 'json'
+
+Dotenv.load
 
 # Until https://github.com/rubyredrick/ri_cal/pull/5 is resolved, we're monkeypatching
 class RiCal::Component::Calendar
@@ -18,21 +21,26 @@ end
 
 module EventCentral
 
+
   class Calendar
 
-    @@logger = Logger.new(STDERR)
-    @@logger.level = Logger::ERROR
-    @@logger.progname = 'EventCentral::Calendar'
+    @@logger = Logger.new($stdout).tap do |log|
+      log.progname = 'EventCentral::Calendar'
+    end
+    def logger
+      @@logger
+    end
+    def logger=(logger)
+      @logger = logger
+    end
+
 
     # Assumes:
     # "Event Name","Start Date","End Date",Country,State,City,Venue,"Region 1","Region 2","Region 3",Contacts,URL,URL2,URL3, Sponsorship,Stakeholders,Type
     #
 
     def initialize
-      @@logger.debug { "Instantiating Calendar class" }
-
-      # Where we'll be getting all our data
-      @URL = 'https://redhat.g2planet.com/redhat_ec/confirmed_calendar.php?output=csv'
+      logger.debug { "Instantiating Calendar class" }
 
       # Contains the CSV text from EventCentral's website
       @raw_csv = nil
@@ -49,15 +57,20 @@ module EventCentral
     end
 
     # Load raw CSV from EventCentral into a formal CSV object
-    def load
-      @@logger.debug { "Loading from " + @URL }
+    def load_csv
+      logger.debug { "Loading from " + ENV['EVENTCENTRAL_URL'] }
+
+      unless @csv_data.nil?
+        logger.debug { "csv already holds " + @csv_data.to_a.count.to_s + " items, returning" }
+        return @csv_data
+      end
 
       # fetch CSV from EventCentral. If that doesn't work, call the whole thing off.
-      open(@URL) do |f| 
+      open(ENV['EVENTCENTRAL_URL']) do |f| 
         @raw_csv = f.read.gsub(/\\"/,'""') 
       end
 
-      @@logger.debug { "raw_csv = " + @raw_csv }
+      #logger.debug { "raw_csv = " + @raw_csv }
 
       # turn nil into empties so the date parser doesn't choke
       CSV::Converters[:blank_to_nil] = lambda do |field|
@@ -69,66 +82,102 @@ module EventCentral
 
       @csv_data = csv.to_a.map {|row| row.to_hash }
 
-      @@logger.debug { "csv_data: " + @csv_data.to_a.count.to_s }
+      logger.debug { "csv_data now holds " + @csv_data.to_a.count.to_s + " records"}
 
     end
 
     # removes events from the list, based on the contents of the param argument
     def filter(params)
-      @@logger.debug { "filter(" + params.inspect + ")" }
+      logger.debug { "filter(" + params.inspect + ")" }
 
-      new_csv_data = @csv_data
+      load_csv
 
       unless params[:stakeholder].nil?
-        new_csv_data = @csv_data.reject {|key,value| 
-          key == "stakeholder" && value.match(params[:stakeholder])
-        }
+        filter_stakeholders(params[:stakeholder])
       end
 
-      @@logger.debug { "new csv_data contains " + new_csv_data.to_a.count.to_s + ")" }
+      unless params[:region].nil?
+        filter_region(params[:region])
+      end
 
-      @csv_data = new_csv_data
+      unless params[:country].nil?
+        filter_country(params[:country])
+      end
+
+      @cvs_data
+
     end
 
-    def csv_data_check
-      if @csv_data.nil?
-        @@logger.debug { "CSV was empty, calling loader." }
-        self.load
-        @@logger.debug { "csv now holds " + @csv_data.to_a.count.to_s + " items" }
-      end
+    def filter_stakeholders(stakeholder)
+        logger.debug { "stakeholder filter set: " + stakeholder } 
+        logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
+        new_csv_data = @csv_data.select {|e|
+          logger.debug { e.to_s }
+          unless e[:stakeholders].nil?
+            e[:stakeholders].match(stakeholder)
+          end
+        }
+        @csv_data = new_csv_data
+        logger.debug { "    @csv_data now contains " + @csv_data.to_a.count.to_s + ")" }
+    end
+
+    def filter_region(region)
+      logger.debug { "region filter set: " + region } 
+      logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
+      new_csv_data = @csv_data.select {|e|
+        logger.debug { e.to_s }
+        unless e[:region_1].nil?
+          e[:region_1].match(region)
+        end
+      }
+      @csv_data = new_csv_data
+      logger.debug { "    @csv_data now contains " + @csv_data.to_a.count.to_s + ")" }
+    end
+
+    def filter_country(country)
+      logger.debug { "country filter set: " + country } 
+      logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
+      new_csv_data = @csv_data.select {|e|
+        logger.debug { e.to_s }
+        unless e[:country].nil?
+          e[:country].match(country)
+        end
+      }
+      @csv_data = new_csv_data
+      logger.debug { "    @csv_data now contains " + @csv_data.to_a.count.to_s + ")" }
     end
 
     def to_json
-      @@logger.debug { "to_json()" }
-      self.csv_data_check
+      logger.debug { "to_json()" }
+      load_csv
       JSON.dump @csv_data
     end
 
     def to_txt
-      @@logger.debug { "to_txt()" }
-      self.csv_data_check
+      logger.debug { "to_txt()" }
+      load_csv
       @csv_raw
     end
 
     def to_ical(cal_name="EventCentral")
-      @@logger.debug { "to_ical()" }
-      self.csv_data_check
+      logger.debug { "to_ical()" }
+
+      load_csv
 
       @calendar = RiCal.Calendar
 
       @calendar.add_x_property 'X-WR-CALNAME', cal_name
 
       @csv_data.each do |row|
-        @@logger.debug { "row: " + row.values.to_s }
+        #logger.debug { "row: " + row.values.to_s }
 
         # if they didn't specify a start date, it's dead to us
         if row[:start_date].nil?
-          @@logger.debug { "No start date, skipping." }
+          logger.debug { "No start date, skipping." }
           next
         end
 
         e = RiCal.Event
-        @@logger.debug { "New event..." }
 
         # Create a synthetic "Region" field
         row[:region] = [ [ row[:region_1], row[:region_2], row[:region_3] ]- ["", nil] ].join(", ")
@@ -165,10 +214,10 @@ module EventCentral
         e.description = new_description
 
         @calendar.add_subcomponent(e)
-        @@logger.debug { "Finished " + e.summary }
+        #logger.debug { "Added " + e.summary }
       end
 
-      @@logger.debug { "Exporting..." }
+      logger.debug { "Exporting..." }
       @calendar.export.to_s
 
     end #to_ical
@@ -176,6 +225,16 @@ module EventCentral
   end #Calendar
 
   class App
+
+    @@logger = Logger.new($stdout).tap do |log|
+      log.progname = 'EventCentral::App'
+    end
+    def logger
+      @@logger
+    end
+    def logger=(logger)
+      @logger = logger
+    end
 
     def self.call(env)
       ec = EventCentral::Calendar.new
@@ -186,7 +245,18 @@ module EventCentral
 
   class API < Grape::API
 
+    @@logger = Logger.new($stdout).tap do |log|
+      log.progname = 'EventCentral::API'
+    end
+    def logger
+      @@logger
+    end
+    def logger=(logger)
+      @logger = logger
+    end
+
     version 'v1', using: :path
+
     format :json
     default_error_formatter :txt
 
@@ -206,7 +276,8 @@ module EventCentral
         optional :country, type: String
       end
       ec = EventCentral::Calendar.new
-      #ec.filter(params)
+      ec.filter(params)
+      ec
     end
 
   end #API
