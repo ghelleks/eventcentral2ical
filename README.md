@@ -8,9 +8,17 @@ publish in the [ICalendar] format, so let's fix that.
 
 You download it. That's pretty much it.
 
-Don't forget to fix the URL. You can either edit `config.ru` to change the EventCentral::Calendar.URL variable at run-time, or edit it by hand in `lib/EventCentral.rb`
+Don't forget to set the URL in the `.env` file.
 
-## Command-Line
+### OpenShift
+
+~~~~~
+$ rhc app create ec2ical ruby-1.9 --from-code=https://github.com/ghelleks/eventcentral2ical
+~~~~~
+
+## Usage
+
+### Command-line
 
 This will spit out an ICalendar file for you:
 
@@ -18,15 +26,16 @@ This will spit out an ICalendar file for you:
 $ ./get-ical.rb
 ~~~~~
 
-## OpenShift
+### Run Locally
 
+Start the local environment:
 ~~~~~
-$ rhc app create ec2ical ruby-1.9 --from-code=https://github.com/ghelleks/eventcentral2ical
+$ rackup
 ~~~~~
 
-Boom.
+The API is now available at http://localhost:9292/api
 
-## Example
+## Examples
 
 Subscribe Red Hat's marketing calendar:
 
@@ -34,9 +43,23 @@ Subscribe Red Hat's marketing calendar:
 
 API calls you might enjoy:
 
-    http://server/api/v1/version
-    http://server/api/v1/calendar.json
-    http://server/api/v1/calendar.ics
+`http://server/api/v1/version`
+: Returns the current version number of the API
+
+http://server/api/v1/calendar.json
+: Returns the full calendar as JSON
+
+http://server/api/v1/calendar.ics
+: Returns the full calendar as ICalendar
+
+http://server/api/v1/calendar.ics?stakeholder=Public%20Sector
+: Filters results for events that have "Public Sector" in the "stakeholders" field
+    
+http://server/api/v1/calendar.ics?region=EMEA
+: Filters results for events that have "Public Sector" in the "stakeholders" field
+    
+http://server/api/v1/calendar.ics?country=USA
+: Filters results for events that have "USA" for the "country" field
 
 ## Bugs, Patches, Problems
 
