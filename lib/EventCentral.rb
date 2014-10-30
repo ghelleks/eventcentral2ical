@@ -40,6 +40,7 @@ module EventCentral
     #
 
     def initialize
+      logger.level = eval ENV['eventcentral.loglevel']
       logger.debug { "Instantiating Calendar class" }
 
       # Contains the CSV text from EventCentral's website
@@ -58,7 +59,7 @@ module EventCentral
 
     # Load raw CSV from EventCentral into a formal CSV object
     def load_csv
-      logger.debug { "Loading from " + ENV['EVENTCENTRAL_URL'] }
+      logger.debug { "Loading from " + ENV['eventcentral.url'] }
 
       unless @csv_data.nil?
         logger.debug { "csv already holds " + @csv_data.to_a.count.to_s + " items, returning" }
@@ -66,7 +67,7 @@ module EventCentral
       end
 
       # fetch CSV from EventCentral. If that doesn't work, call the whole thing off.
-      open(ENV['EVENTCENTRAL_URL']) do |f| 
+      open(ENV['eventcentral.url']) do |f| 
         @raw_csv = f.read.gsub(/\\"/,'""') 
       end
 
@@ -236,6 +237,10 @@ module EventCentral
       @logger = logger
     end
 
+    def initialize
+      log.level = eval ENV['eventcentral.loglevel']
+    end
+
     def self.call(env)
       ec = EventCentral::Calendar.new
       [ '200', {'Content-Type' => 'text/calendar'}, [ec.to_ical] ] 
@@ -247,12 +252,17 @@ module EventCentral
 
     @@logger = Logger.new($stdout).tap do |log|
       log.progname = 'EventCentral::API'
+      log.level = eval ENV['eventcentral.loglevel']
     end
     def logger
       @@logger
     end
     def logger=(logger)
       @logger = logger
+    end
+
+    def initialize
+      log.level = eval ENV['eventcentral.loglevel']
     end
 
     version 'v1', using: :path
