@@ -3,6 +3,7 @@ require 'ri_cal'
 require 'csv'
 require 'open-uri'
 require 'grape'
+require 'grape-swagger'
 require 'logger'
 require 'json'
 
@@ -257,6 +258,12 @@ module EventCentral
     content_type :ical, "text/calendar"
     formatter :ical, lambda { |object, env| object.to_ical }
 
+    # Set access controls to enable documentation
+    before do
+      header['Access-Control-Allow-Origin'] = '*'
+      header['Access-Control-Request-Method'] = '*'
+    end
+
     desc "Returns the version we're working with"
     get :version do
       { :version => version }
@@ -273,6 +280,8 @@ module EventCentral
       ec.filter(params)
       ec
     end
+
+    add_swagger_documentation
 
   end #API
 

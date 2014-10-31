@@ -75,6 +75,10 @@ Filter results for events that have "USA" for the "country" field:
 
    `http://server/api/v1/calendar.ics?country=USA`
 
+Complete API documentation is available via Swagger:
+
+   `http://server/api/v1/swagger_doc`
+
 ## Bugs, Patches, Problems
 
 File an issue: http://github.com/ghelleks/eventcentral2ical
