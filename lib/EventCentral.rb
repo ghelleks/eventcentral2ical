@@ -21,26 +21,34 @@ end
 
 module EventCentral
 
+  class Base
 
-  class Calendar
-
-    @@logger = Logger.new($stdout).tap do |log|
-      log.progname = 'EventCentral::Calendar'
+    def initialize
+      @logger = Logger.new($stderr).tap do |log|
+        log.progname = 'EventCentral::Base'
+        log.level = Logger.const_get ENV['eventcentral.log_level']
+      end
     end
+
     def logger
-      @@logger
+      @logger
     end
+
     def logger=(logger)
       @logger = logger
     end
 
+  end
+
+  class Calendar < Base
 
     # Assumes:
     # "Event Name","Start Date","End Date",Country,State,City,Venue,"Region 1","Region 2","Region 3",Contacts,URL,URL2,URL3, Sponsorship,Stakeholders,Type
     #
 
     def initialize
-      logger.level = eval ENV['eventcentral.loglevel']
+      super()
+      logger.progname = 'EventCentral::Calendar'
       logger.debug { "Instantiating Calendar class" }
 
       # Contains the CSV text from EventCentral's website
@@ -225,20 +233,11 @@ module EventCentral
 
   end #Calendar
 
-  class App
-
-    @@logger = Logger.new($stdout).tap do |log|
-      log.progname = 'EventCentral::App'
-    end
-    def logger
-      @@logger
-    end
-    def logger=(logger)
-      @logger = logger
-    end
+  class App < Base
 
     def initialize
-      log.level = eval ENV['eventcentral.loglevel']
+      super()
+      logger.progname = 'EventCentral::App'
     end
 
     def self.call(env)
@@ -249,21 +248,6 @@ module EventCentral
   end #app
 
   class API < Grape::API
-
-    @@logger = Logger.new($stdout).tap do |log|
-      log.progname = 'EventCentral::API'
-      log.level = eval ENV['eventcentral.loglevel']
-    end
-    def logger
-      @@logger
-    end
-    def logger=(logger)
-      @logger = logger
-    end
-
-    def initialize
-      log.level = eval ENV['eventcentral.loglevel']
-    end
 
     version 'v1', using: :path
 

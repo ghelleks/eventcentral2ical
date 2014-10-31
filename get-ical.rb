@@ -16,7 +16,7 @@ opts = Trollop::options do
 end
 
 if opts[:debug]
-  ENV['eventcentral.loglevel'] = "Logger::DEBUG"
+  ENV['eventcentral.log_level'] = "DEBUG"
 end
 
 ec = EventCentral::Calendar.new
