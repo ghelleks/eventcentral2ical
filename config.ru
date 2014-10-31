@@ -1,8 +1,5 @@
 require 'rack/lobster'
 require './lib/EventCentral.rb'
-#require 'logger'
-
-#use Rack::CommonLogger, logger
 
 map '/health' do
   health = proc do |env|
