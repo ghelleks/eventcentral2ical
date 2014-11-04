@@ -25,10 +25,15 @@ module EventCentral
   class Base
 
     def initialize
+
       @logger = Logger.new($stderr).tap do |log|
         log.progname = 'EventCentral::Base'
         log.level = Logger.const_get ENV['eventcentral.log_level']
       end
+
+      # initialize the cache
+      @cache = {}
+
     end
 
     def logger
@@ -37,6 +42,28 @@ module EventCentral
 
     def logger=(logger)
       @logger = logger
+    end
+
+   def fetch(url, max_age=0)
+      logger.debug { "fetch(" + url + ", " + max_age.to_s + ")" }
+
+      # if the API URL exists as a key in cache, we just return it
+      # we also make sure the data is fresh
+      if @cache.has_key? url
+         logger.debug { "fetch() returning cached " + url }
+         return @cache[url][1] if Time.now-@cache[url][0]<max_age
+      end
+      # if the URL does not exist in cache or the data is not fresh,
+      #  we fetch again and store in cache
+      logger.debug { "fetch() getting " + url }
+      open(url) do |f| 
+        @raw_body = f.read
+      end
+
+      @cache[url] = [Time.now, @raw_body]
+
+      return @cache[url][1]
+
     end
 
   end
@@ -68,17 +95,15 @@ module EventCentral
 
     # Load raw CSV from EventCentral into a formal CSV object
     def load_csv
-      logger.debug { "Loading from " + ENV['eventcentral.url'] }
+      logger.debug { "load_csv from " + ENV['eventcentral.url'] }
 
       unless @csv_data.nil?
-        logger.debug { "csv already holds " + @csv_data.to_a.count.to_s + " items, returning" }
+        logger.debug { "returning @csv_data" }
         return @csv_data
       end
 
       # fetch CSV from EventCentral. If that doesn't work, call the whole thing off.
-      open(ENV['eventcentral.url']) do |f| 
-        @raw_csv = f.read.gsub(/\\"/,'""') 
-      end
+      @raw_csv = fetch(ENV['eventcentral.url'], ENV['eventcentral.cache_timeout'].to_i).gsub(/\\"/,'""') 
 
       #logger.debug { "raw_csv = " + @raw_csv }
 
@@ -93,6 +118,8 @@ module EventCentral
       @csv_data = csv.to_a.map {|row| row.to_hash }
 
       logger.debug { "csv_data now holds " + @csv_data.to_a.count.to_s + " records"}
+
+      return @csv_data;
 
     end
 
@@ -122,7 +149,7 @@ module EventCentral
         logger.debug { "stakeholder filter set: " + stakeholder } 
         logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
         new_csv_data = @csv_data.select {|e|
-          logger.debug { e.to_s }
+          #logger.debug { e.to_s }
           unless e[:stakeholders].nil?
             e[:stakeholders].match(stakeholder)
           end
