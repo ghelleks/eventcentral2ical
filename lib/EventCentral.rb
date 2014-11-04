@@ -6,6 +6,7 @@ require 'grape'
 require 'grape-swagger'
 require 'logger'
 require 'json'
+require 'digest'
 
 Dotenv.load
 
@@ -31,8 +32,7 @@ module EventCentral
         log.level = Logger.const_get ENV['eventcentral.log_level']
       end
 
-      # initialize the cache
-      @cache = {}
+      @cache_dir = ENV['eventcentral.cache_dir'] || '/tmp'
 
     end
 
@@ -44,29 +44,49 @@ module EventCentral
       @logger = logger
     end
 
-   def fetch(url, max_age=0)
-      logger.debug { "fetch(" + url + ", " + max_age.to_s + ")" }
-
-      # if the API URL exists as a key in cache, we just return it
-      # we also make sure the data is fresh
-      if @cache.has_key? url
-         logger.debug { "fetch() returning cached " + url }
-         return @cache[url][1] if Time.now-@cache[url][0]<max_age
-      end
-      # if the URL does not exist in cache or the data is not fresh,
-      #  we fetch again and store in cache
-      logger.debug { "fetch() getting " + url }
-      open(url) do |f| 
-        @raw_body = f.read
-      end
-
-      @cache[url] = [Time.now, @raw_body]
-
-      return @cache[url][1]
-
+    def cache_dir
+      @cache_dir
     end
 
-  end
+    def cache_dir=(cache_dir)
+      @cache_dir = cache_dir
+    end
+
+    def fetch(url, max_age=0)
+      logger.debug { "fetch(" + url + ", " + max_age.to_s + ")" }
+      file = "eventcentral-" + Digest::MD5.hexdigest(url)
+      logger.debug { "filename = " + file }
+      logger.debug { "cache_dir = " + cache_dir }
+      file_path = File.join("", cache_dir, file)
+
+      # we check if the file -- an MD5 hexdigest of the URL -- exists
+      #  in the dir. If it does and the data is fresh, we just read
+      #  data from the file and return
+      if File.exists? file_path 
+        if Time.now-File.mtime(file_path) < max_age
+          logger.debug { "using cached = " + file_path }
+          cached_results = File.new(file_path).read 
+        end
+      end
+
+      # if the file does not exist (or if the data is not fresh), we
+      #  make an HTTP request and save it to a file
+      if cached_results.nil?
+        open(url) do |f| 
+          cached_results = f.read
+        end
+
+        File.open(file_path, "w") do |f|
+          logger.debug { "using new = " + file_path }
+          f << cached_results
+        end
+      end
+
+      return cached_results
+
+    end #fetch()
+
+  end #Base
 
   class Calendar < Base
 

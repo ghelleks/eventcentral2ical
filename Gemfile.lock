@@ -39,6 +39,8 @@ GEM
     rack (1.5.2)
     rack-accept (0.4.5)
       rack (>= 0.4)
+    rack-cache (1.2)
+      rack (>= 0.4)
     rack-mount (0.8.3)
       rack (>= 1.0.0)
     ri_cal (0.8.8)
@@ -57,4 +59,5 @@ DEPENDENCIES
   grape
   grape-swagger
   rack
+  rack-cache
   ri_cal
