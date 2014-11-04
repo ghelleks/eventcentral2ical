@@ -32,7 +32,7 @@ module EventCentral
         log.level = Logger.const_get ENV['eventcentral.log_level']
       end
 
-      @cache_dir = ENV['eventcentral.cache_dir'] || '/tmp'
+      @cache_dir = ENV['OPENSHIFT_TMP_DIR'] || ENV['eventcentral.cache_dir'] || '/tmp'
 
     end
 
