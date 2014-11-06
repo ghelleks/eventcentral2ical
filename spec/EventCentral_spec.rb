@@ -43,6 +43,15 @@ describe 'EventCentral::Base' do
     end
   end
 
+  describe "#fetch_cached_file" do
+    it "returns content of the specified cache file" do
+      filename = 'sample-cache.txt'
+      @e.cache_content('this is a test', filename)
+      expect(@e.fetch_cached_file(filename).length).to be > 0
+      File.delete(filename)
+    end
+  end
+
   describe "#fetch_and_cache" do
     it "fetches a url and caches it for later" do
     end
