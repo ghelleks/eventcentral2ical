@@ -52,13 +52,31 @@ module EventCentral
       @cache_dir = cache_dir
     end
 
+    def get_cache_filename(url)
+      file = "eventcentral-" + Digest::MD5.hexdigest(url)
+      file_path = File.join("", cache_dir, file)
+      return file_path
+    end
+
     def fetch(url, max_age=0)
       logger.debug { "fetch(" + url + ", " + max_age.to_s + ")" }
-      file = "eventcentral-" + Digest::MD5.hexdigest(url)
-      logger.debug { "filename = " + file }
       logger.debug { "cache_dir = " + cache_dir }
-      file_path = File.join("", cache_dir, file)
 
+      file_path = get_cache_filename(url)
+
+      cached_results = fetch_cached_file(file_path, max_age)
+
+      # if the file does not exist (or if the data is not fresh), we
+      #  grab a fresh copy and save it
+      if cached_results.nil?
+        cached_results = fetch_and_cache(url, file_path)
+      end
+
+      return cached_results
+
+    end #fetch()
+
+    def fetch_cached_file(filename, max_age=600)
       # we check if the file -- an MD5 hexdigest of the URL -- exists
       #  in the dir. If it does and the data is fresh, we just read
       #  data from the file and return
@@ -69,22 +87,33 @@ module EventCentral
         end
       end
 
-      # if the file does not exist (or if the data is not fresh), we
-      #  make an HTTP request and save it to a file
-      if cached_results.nil?
-        open(url) do |f| 
-          cached_results = f.read
-        end
-
-        File.open(file_path, "w") do |f|
-          logger.debug { "using new = " + file_path }
-          f << cached_results
-        end
-      end
-
       return cached_results
 
-    end #fetch()
+    end
+
+    def cache_content(content, file_path)
+      File.open(file_path, "w") do |f|
+        logger.debug { "using new = " + file_path }
+        f << content
+      end
+    end
+
+    def fetch_contents(url)
+      contents = nil
+      open(url) do |f| 
+        contents = f.read
+      end
+      return contents
+    end
+
+    def fetch_and_cache(url, file_path)
+
+      contents = fetch_contents(url)
+      cache_content(contents, file_path)
+
+      return contents
+
+    end
 
   end #Base
 
