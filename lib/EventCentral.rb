@@ -80,10 +80,10 @@ module EventCentral
       # we check if the file -- an MD5 hexdigest of the URL -- exists
       #  in the dir. If it does and the data is fresh, we just read
       #  data from the file and return
-      if File.exists? file_path 
-        if Time.now-File.mtime(file_path) < max_age
-          logger.debug { "using cached = " + file_path }
-          cached_results = File.new(file_path).read 
+      if File.exists? filename
+        if Time.now-File.mtime(filename) < max_age
+          logger.debug { "using cached = " + filename }
+          cached_results = File.new(filename).read 
         end
       end
 
