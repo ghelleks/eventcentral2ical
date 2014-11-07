@@ -59,20 +59,71 @@ describe 'EventCentral::Base' do
 
 end
 
+describe "EventCentral::CSVFile" do
+
+  before :all do
+    @url = 'spec/sample.csv'
+    @csv = EventCentral::CSVFile.new('spec/sample.csv')
+  end
+
+  describe "#new" do
+    it "populates based on the given string" do
+      expect(@csv.contents.length).to be > 0
+    end
+  end
+
+  describe "#fetch" do
+
+    it "caches the data from a URL" do
+      @csv.fetch(@url)
+      expect(@csv.contents.length).to be > 0
+    end
+
+  end
+
+  describe "#url" do
+    it "is a string" do
+      expect(@csv.url).to be_a(String)
+    end
+
+    it "can be set" do
+      @csv.url = "something"
+      expect(@csv.url).to eq("something")
+    end
+  end
+
+  describe "#contents" do
+
+    it "is an array" do
+      expect(@csv.contents).to be_an(Array)
+    end
+
+    it "can be set" do
+      @csv.contents = [ "foo", "bar", "baz" ]
+      expect(@csv.contents.length).to be == 3
+    end
+    
+  end
+
+end
+
+
 describe "EventCentral::Calendar" do
 
   before :all do
-    @e = EventCentral::Calendar.new
+    @e = EventCentral::Calendar.new 'spec/sample.csv'
+  end
+
+  it "is a EventCentral::CSVFile" do
+    expect(@e).to be_an(EventCentral::CSVFile)
   end
 
   describe "#new" do
     it "sets the logging progname to EventCentral::Calendar" do
       expect(@e.logger.progname).to eq("EventCentral::Calendar")
     end
-  end
-
-  describe "#load_csv" do
-    it "draws the CSV data into memory" do
+    it "accepts a URL as the source file" do
+      expect(@e.contents.length).to be > 0
     end
   end
 
@@ -110,6 +161,4 @@ describe "EventCentral::Calendar" do
     it "formats the results in ICalendar" do
     end
   end
-
 end
-
