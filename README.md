@@ -67,7 +67,7 @@ Filter results for events that have "Public Sector" in the "stakeholders" field
 
    `http://server/api/v1/calendar.ics?stakeholder=Public%20Sector`
     
-Filter results for events that have "Public Sector" in the "stakeholders" field
+Filter results for events that have "EMEA" in the "region_1" field
 
    `http://server/api/v1/calendar.ics?region=EMEA`
 
