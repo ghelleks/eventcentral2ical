@@ -19,7 +19,7 @@ if opts[:debug]
   ENV['eventcentral.log_level'] = "DEBUG"
 end
 
-ec = EventCentral::Calendar.new
+ec = EventCentral::Calendar.new(ENV['eventcentral.url'])
 ec.filter(opts)
 
 case opts[:format]
