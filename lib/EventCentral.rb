@@ -23,7 +23,10 @@ end
 
 module EventCentral
 
+
   class Base
+  
+    @@DEFAULT_MAX_AGE = 600
 
     def initialize
 
@@ -58,7 +61,7 @@ module EventCentral
       return file_path
     end
 
-    def fetch(url, max_age=0)
+    def fetch(url, max_age=@@DEFAULT_MAX_AGE)
       logger.debug { "fetch(" + url + ", " + max_age.to_s + ")" }
       logger.debug { "cache_dir = " + cache_dir }
 
@@ -76,7 +79,7 @@ module EventCentral
 
     end #fetch()
 
-    def fetch_cached_file(filename, max_age=600)
+    def fetch_cached_file(filename, max_age=@@DEFAULT_MAX_AGE)
       # we check if the file -- an MD5 hexdigest of the URL -- exists
       #  in the dir. If it does and the data is fresh, we just read
       #  data from the file and return
@@ -117,66 +120,83 @@ module EventCentral
 
   end #Base
 
-  class Calendar < Base
+  class CSVFile < Base
+    
+    def initialize
+      super()
+      logger.progname = 'EventCentral::CSVFile'
+      logger.debug { "Instantiating CSVFile class" }
+    end
+
+    def initialize(csv_file_url)
+      super()
+      logger.progname = 'EventCentral::CSVFile'
+      logger.debug { 'Instantiating CSVFile class('+csv_file_url+')' }
+      self.url = csv_file_url
+      fetch(self.url)
+    end
+
+    def url
+      return @url
+    end
+    
+    def url=(new_url)
+      @url = new_url
+    end
+
+    def contents
+      @contents
+    end
+
+    def contents=(new_contents)
+      @contents = new_contents
+    end
+
+    # overload the parent's fetch to do caching
+    def fetch(url, max_age=@@DEFAULT_MAX_AGE)
+
+      if @contents.nil?
+
+        # let EventCentral::Base actually get the contents
+        results = super(url, max_age).gsub(/\\"/,'""') 
+
+        # turn nil into empties so the date parser doesn't choke
+        CSV::Converters[:blank_to_nil] = lambda do |field|
+          field && field.empty? ? nil : field
+        end
+
+        # load everything up, 
+        # honor the first row as headers, 
+        # convert the empties per above
+        csv = CSV.new(results, :headers => true, :header_converters => :symbol, :converters => [:all, :blank_to_nil] )
+
+        @contents = csv.to_a.map {|row| row.to_hash }
+
+      end
+
+      logger.debug { "contents now holds " + @contents.to_a.count.to_s + " records"}
+
+      return @contents
+
+    end
+
+  end
+
+  class Calendar < CSVFile
 
     # Assumes:
     # "Event Name","Start Date","End Date",Country,State,City,Venue,"Region 1","Region 2","Region 3",Contacts,URL,URL2,URL3, Sponsorship,Stakeholders,Type
     #
 
-    def initialize
-      super()
+    def initialize(eventcentral_url)
+      super(eventcentral_url)
       logger.progname = 'EventCentral::Calendar'
       logger.debug { "Instantiating Calendar class" }
-
-      # Contains the CSV text from EventCentral's website
-      @raw_csv = nil
-
-      # Contains the parsed CSV object
-      @csv = nil
-
-      # the hash we work with
-      @csv_data = nil
-
-      # Calendar object, used for to_ical converstion
-      @calendar = nil
-
-    end
-
-    # Load raw CSV from EventCentral into a formal CSV object
-    def load_csv
-      logger.debug { "load_csv from " + ENV['eventcentral.url'] }
-
-      unless @csv_data.nil?
-        logger.debug { "returning @csv_data" }
-        return @csv_data
-      end
-
-      # fetch CSV from EventCentral. If that doesn't work, call the whole thing off.
-      @raw_csv = fetch(ENV['eventcentral.url'], ENV['eventcentral.cache_timeout'].to_i).gsub(/\\"/,'""') 
-
-      #logger.debug { "raw_csv = " + @raw_csv }
-
-      # turn nil into empties so the date parser doesn't choke
-      CSV::Converters[:blank_to_nil] = lambda do |field|
-        field && field.empty? ? nil : field
-      end
-
-      # load everything up, honor the first row as headers, convert the empties like we told them
-      csv = CSV.new(@raw_csv, :headers => true, :header_converters => :symbol, :converters => [:all, :blank_to_nil] )
-
-      @csv_data = csv.to_a.map {|row| row.to_hash }
-
-      logger.debug { "csv_data now holds " + @csv_data.to_a.count.to_s + " records"}
-
-      return @csv_data;
-
     end
 
     # removes events from the list, based on the contents of the param argument
     def filter(params)
       logger.debug { "filter(" + params.inspect + ")" }
-
-      load_csv
 
       unless params[:stakeholder].nil?
         filter_stakeholders(params[:stakeholder])
@@ -190,71 +210,75 @@ module EventCentral
         filter_country(params[:country])
       end
 
-      @cvs_data
+      return @contents
 
+    end
+
+    def contents
+      super
+    end
+
+    def contents=(new_contents)
+      super.contents = new_contents
     end
 
     def filter_stakeholders(stakeholder)
         logger.debug { "stakeholder filter set: " + stakeholder } 
-        logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
-        new_csv_data = @csv_data.select {|e|
+        logger.debug { "    @contents contains " + @contents.to_a.count.to_s + ")" }
+        new_contents = @contents.select {|e|
           #logger.debug { e.to_s }
           unless e[:stakeholders].nil?
             e[:stakeholders].match(stakeholder)
           end
         }
-        @csv_data = new_csv_data
-        logger.debug { "    @csv_data now contains " + @csv_data.to_a.count.to_s + ")" }
+        @contents = new_contents
+        logger.debug { "    @contents now contains " + @contents.to_a.count.to_s + ")" }
     end
 
     def filter_region(region)
       logger.debug { "region filter set: " + region } 
-      logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
-      new_csv_data = @csv_data.select {|e|
+      logger.debug { "    @contents contains " + @contents.to_a.count.to_s + ")" }
+      new_contents = @contents.select {|e|
         logger.debug { e.to_s }
         unless e[:region_1].nil?
           e[:region_1].match(region)
         end
       }
-      @csv_data = new_csv_data
-      logger.debug { "    @csv_data now contains " + @csv_data.to_a.count.to_s + ")" }
+      @contents = new_contents
+      logger.debug { "    @contents now contains " + @contents.to_a.count.to_s + ")" }
     end
 
     def filter_country(country)
       logger.debug { "country filter set: " + country } 
-      logger.debug { "    @csv_data contains " + @csv_data.to_a.count.to_s + ")" }
-      new_csv_data = @csv_data.select {|e|
+      logger.debug { "    @contents contains " + @contents.to_a.count.to_s + ")" }
+      new_contents = @contents.select {|e|
         logger.debug { e.to_s }
         unless e[:country].nil?
           e[:country].match(country)
         end
       }
-      @csv_data = new_csv_data
-      logger.debug { "    @csv_data now contains " + @csv_data.to_a.count.to_s + ")" }
+      @contents = new_contents
+      logger.debug { "    @contents now contains " + @contents.to_a.count.to_s + ")" }
     end
 
     def to_json
       logger.debug { "to_json()" }
-      load_csv
-      JSON.dump @csv_data
+      JSON.dump @contents
     end
 
     def to_txt
       logger.debug { "to_txt()" }
-      load_csv
       @csv_raw
     end
 
     def to_ical(cal_name="EventCentral")
       logger.debug { "to_ical()" }
 
-      load_csv
-
       @calendar = RiCal.Calendar
 
       @calendar.add_x_property 'X-WR-CALNAME', cal_name
 
-      @csv_data.each do |row|
+      @contents.each do |row|
         #logger.debug { "row: " + row.values.to_s }
 
         # if they didn't specify a start date, it's dead to us
@@ -318,7 +342,7 @@ module EventCentral
     end
 
     def self.call(env)
-      ec = EventCentral::Calendar.new
+      ec = EventCentral::Calendar.new(ENV['eventcentral.url'])
       [ '200', {'Content-Type' => 'text/calendar'}, [ec.to_ical] ] 
     end
 
@@ -352,7 +376,7 @@ module EventCentral
         optional :region, type: String
         optional :country, type: String
       end
-      ec = EventCentral::Calendar.new
+      ec = EventCentral::Calendar.new(ENV['eventcentral.url'])
       ec.filter(params)
       ec
     end
