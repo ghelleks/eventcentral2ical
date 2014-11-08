@@ -28,6 +28,9 @@ module EventCentral
   
     @@DEFAULT_MAX_AGE = 600
 
+    attr_accessor :cache_dir
+    attr_accessor :logger
+
     def initialize
 
       @logger = Logger.new($stderr).tap do |log|
@@ -37,22 +40,6 @@ module EventCentral
 
       @cache_dir = ENV['OPENSHIFT_TMP_DIR'] || ENV['eventcentral.cache_dir'] || '/tmp'
 
-    end
-
-    def logger
-      @logger
-    end
-
-    def logger=(logger)
-      @logger = logger
-    end
-
-    def cache_dir
-      @cache_dir
-    end
-
-    def cache_dir=(cache_dir)
-      @cache_dir = cache_dir
     end
 
     def get_cache_filename(url)
@@ -122,6 +109,9 @@ module EventCentral
 
   class CSVFile < Base
     
+    attr_accessor :contents
+    attr_accessor :url
+
     def initialize
       super()
       logger.progname = 'EventCentral::CSVFile'
@@ -134,22 +124,6 @@ module EventCentral
       logger.debug { 'Instantiating CSVFile class('+csv_file_url+')' }
       self.url = csv_file_url
       fetch(self.url)
-    end
-
-    def url
-      return @url
-    end
-    
-    def url=(new_url)
-      @url = new_url
-    end
-
-    def contents
-      @contents
-    end
-
-    def contents=(new_contents)
-      @contents = new_contents
     end
 
     # overload the parent's fetch to do caching
@@ -188,6 +162,8 @@ module EventCentral
     # "Event Name","Start Date","End Date",Country,State,City,Venue,"Region 1","Region 2","Region 3",Contacts,URL,URL2,URL3, Sponsorship,Stakeholders,Type
     #
 
+    attr_accessor :contents
+
     def initialize(eventcentral_url)
       super(eventcentral_url)
       logger.progname = 'EventCentral::Calendar'
@@ -212,14 +188,6 @@ module EventCentral
 
       return @contents
 
-    end
-
-    def contents
-      super
-    end
-
-    def contents=(new_contents)
-      super.contents = new_contents
     end
 
     def filter_stakeholders(stakeholder)
@@ -268,7 +236,7 @@ module EventCentral
 
     def to_txt
       logger.debug { "to_txt()" }
-      @csv_raw
+      @contents.join("\n")
     end
 
     def to_ical(cal_name="EventCentral")
@@ -279,10 +247,10 @@ module EventCentral
       @calendar.add_x_property 'X-WR-CALNAME', cal_name
 
       @contents.each do |row|
-        #logger.debug { "row: " + row.values.to_s }
+        logger.debug { "row: " + row.values.to_s }
 
         # if they didn't specify a start date, it's dead to us
-        if row[:start_date].nil?
+        unless row[:start_date] =~ /\d\d\d\d-\d\d?-\d\d?/ 
           logger.debug { "No start date, skipping." }
           next
         end
