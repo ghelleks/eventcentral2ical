@@ -1,4 +1,4 @@
 cd ${OPENSHIFT_REPO_DIR}
 echo Running RSpec...
-rspec
+bundle exec rspec
 echo done.
