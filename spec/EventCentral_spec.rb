@@ -100,7 +100,7 @@ describe "EventCentral::CSVFile" do
 
     it "can be set" do
       @csv.contents = [ "foo", "bar", "baz" ]
-      expect(@csv.contents.length).to be == 3
+      expect(@csv.contents.length).to eq(3)
     end
     
   end
@@ -110,7 +110,7 @@ end
 
 describe "EventCentral::Calendar" do
 
-  before :all do
+  before :each do
     @e = EventCentral::Calendar.new 'spec/sample.csv'
   end
 
@@ -134,31 +134,41 @@ describe "EventCentral::Calendar" do
 
   describe "#filter_stakeholders" do
     it "filters the results by the contents of the stakeholders field" do
+      @e.filter_stakeholders("Public Sector")
+      expect(@e.contents.length).to be == 138
     end
   end
 
   describe "#filter_region" do
     it "filters the results by the region_1 field" do
+      @e.filter_region("EMEA")
+      expect(@e.contents.length).to be == 200
     end
   end
 
   describe "#filter_country" do
     it "filters the results by the country field" do
+      @e.filter_country("Germany")
+      expect(@e.contents.length).to eq(40)
     end
   end
 
   describe "#to_json" do
     it "formats the results in JSON" do
+      expect(JSON.parse(@e.to_json).length).to eq(1431)
     end
   end
 
   describe "#to_txt" do
     it "formats the results in plain text" do
+      expect(@e.to_txt.split("\n").length).to eq(1431)
     end
   end
 
   describe "#to_ical" do
-    it "formats the results in ICalendar" do
+    it "formats the results in ICalendar, skipping invalid events" do
+      expect(@e.to_ical.scan('BEGIN:VEVENT').length).to eq(1122)
     end
   end
 end
+
