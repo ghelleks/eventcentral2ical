@@ -1,0 +1,4 @@
+cd ${OPENSHIFT_REPO_DIR}
+echo Running RSpec...
+rspec
+echo done.
