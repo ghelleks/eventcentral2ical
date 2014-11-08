@@ -79,6 +79,15 @@ Complete API documentation is available via Swagger:
 
    `http://server/api/v1/swagger_doc`
 
+## Monitoring
+
+New Relic support is included. Set 'NEW_RELIC_LICENSE_KEY' and you're off to
+the races.
+
+If you're using OpenShift, make especially sure you don't set your license key in the newrelic.yml file. Instead, set `NEW_RELIC_LICENSE_KEY` thusly:
+
+   `$ rhc set-env NEW_RELIC_LICENSE_KEY <license key> -a myapp`
+
 ## Bugs, Patches, Problems
 
 File an issue: http://github.com/ghelleks/eventcentral2ical

@@ -1,6 +1,7 @@
 #source 'https://mirror.openshift.com/'
 source 'https://rubygems.org/'
 
+gem "newrelic_rpm"
 gem "rack"
 gem "rspec"
 gem "ri_cal"
