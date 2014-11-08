@@ -4,7 +4,6 @@ require 'csv'
 require 'open-uri'
 require 'grape'
 require 'grape-swagger'
-require 'logger'
 require 'json'
 require 'digest'
 
