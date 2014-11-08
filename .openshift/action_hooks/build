@@ -1,3 +1,2 @@
 cd ${OPENSHIFT_REPO_DIR}
-#bundle exec rspec
-exit 1
+bundle exec rspec
